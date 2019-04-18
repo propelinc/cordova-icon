@@ -25,9 +25,10 @@ var getPlatforms = function (projectName) {
   var deferred = Q.defer();
   var platforms = [];
   var xcodeFolder = '/Images.xcassets/AppIcon.appiconset/';
+  var xcodeSplashFolder = '/Images.xcassets/LaunchImage.launchimage/';
 
   if (settings.OLD_XCODE_PATH) {
-    xcodeFolder = '/Resources/icons/';
+    xcodeIconFolder = '/Resources/icons/';
   }
 
   platforms.push({
@@ -64,6 +65,33 @@ var getPlatforms = function (projectName) {
       { name: 'AppIcon44x44@2x.png',     size : 88   },
       { name: 'AppIcon86x86@2x.png',     size : 172  },
       { name: 'AppIcon98x98@2x.png',     size : 196  }
+    ]
+  });
+  platforms.push({
+    name : 'ios-splash',
+    iconFile: 'splash.png',
+    // TODO: use async fs.exists
+    isAdded : fs.existsSync('platforms/ios'),
+    iconsPath : 'platforms/ios/' + projectName + xcodeSplashFolder,
+    icons : [
+      // iPhone
+      { name: 'Default~iphone.png',            width: 320,  height: 480  },
+      { name: 'Default@2x~iphone.png',         width: 640,  height: 960  },
+      { name: 'Default-568h@2x~iphone.png',    width: 640,  height: 1136 },
+      { name: 'Default-667h.png',              width: 750,  height: 1334 },
+      { name: 'Default-736h.png',              width: 1242, height: 2208 },
+      { name: 'Default-Landscape-736h.png',    width: 2208, height: 1242 },
+      { name: 'Default-2436h.png',             width: 1125, height: 2436 },
+      { name: 'Default-Landscape-2436h.png',   width: 2436, height: 1125 },
+      { name: 'Default-2688h.png',             width: 1242, height: 2688 },
+      { name: 'Default-Landscape-2688h.png',   width: 2688, height: 1242 },
+      { name: 'Default-1792h.png',             width: 828, height: 1792 },
+      { name: 'Default-Landscape-1792h.png',   width: 1792, height: 828 },
+      // iPad
+      { name: 'Default-Portrait~ipad.png',     width: 768,  height: 1024 },
+      { name: 'Default-Portrait@2x~ipad.png',  width: 1536, height: 2048 },
+      { name: 'Default-Landscape~ipad.png',    width: 1024, height: 768  },
+      { name: 'Default-Landscape@2x~ipad.png', width: 2048, height: 1536 }
     ]
   });
   platforms.push({
@@ -239,7 +267,7 @@ var getProjectName = function () {
  */
 var generateIcon = function (platform, icon) {
   var deferred = Q.defer();
-  var srcPath = settings.ICON_FILE;
+  var srcPath = platform.iconFile || settings.ICON_FILE;
   var platformPath = srcPath.replace(/\.png$/, '-' + platform.name + '.png');
   if (fs.existsSync(platformPath)) {
     srcPath = platformPath;
@@ -249,28 +277,31 @@ var generateIcon = function (platform, icon) {
   if (!fs.existsSync(dst)) {
     fs.mkdirsSync(dst);
   }
-  ig.resize({
-    srcPath: srcPath,
-    dstPath: dstPath,
-    quality: 1,
-    format: 'png',
-    width: icon.size,
-    height: icon.size
-  } , function(err, stdout, stderr){
-    if (err) {
-      deferred.reject(err);
-    } else {
-      deferred.resolve();
-      display.success(icon.name + ' created');
-    }
-  });
+  if (icon.size) {
+    ig.resize({
+      srcPath: srcPath,
+      dstPath: dstPath,
+      quality: 1,
+      format: 'png',
+      width: icon.size,
+      height: icon.size
+    } , function(err, stdout, stderr){
+      if (err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve();
+        display.success(icon.name + ' created');
+      }
+    });
+  }
+
   if (icon.height) {
     ig.crop({
       srcPath: srcPath,
       dstPath: dstPath,
       quality: 1,
       format: 'png',
-      width: icon.size,
+      width: icon.size || icon.width,
       height: icon.height
     } , function(err, stdout, stderr){
       if (err) {
